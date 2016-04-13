@@ -10,8 +10,11 @@ but 目前发现WebPack也不错，它用CommonJs规范，能够运行在服务�
 我目前研究的项目正需要这个功能...只能放弃了
 
 增加了三个日常使用的API
-CMDLoader.use('id');
-CMDLoader.map({id:xxx});
-CMDLoader.use('id');
+CMDLoader.use('id');  
+
+CMDLoader.map({id:xxx});  
+
+CMDLoader.use('id');  
+
 
 增加了异步加载模式
