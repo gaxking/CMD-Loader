@@ -1,7 +1,60 @@
-var CMDLoader = (function(w) {
-	var module = {};
-	w.define = function (id, factory) {
-		module[id] = factory;
+window.CMDLoader = (function(w) {
+	var module = {}, callbackDic = {}, asyncDic = {}, baseUrl = '', depsDic = {}, map = {};
+	w.define = function (id, deps, factory) {
+		var exports;
+
+		if(Object.prototype.toString.call(deps) === '[object Array]' && deps.length === 0) {
+			deps = factory;
+		}
+
+		if(typeof deps == 'function') {
+			module[id] = deps;
+			if(asyncDic[id]) {
+				exports = require(id);
+				if(callbackDic[id]) {
+					if(depsDic[id]) {
+						callbackDic[id](id);
+					}else{
+						callbackDic[id](exports);
+					}
+				}
+			}
+		}else{
+			for(var i = 0;i < deps.length; i++) {
+				var _id = deps[i];
+				if(!module[_id]) {
+					depsDic[_id] = true;
+					require.async(_id, function(_id) {
+						var index = deps.indexOf(_id);
+						if(index!==-1)deps.splice(index, 1);
+
+						if(deps.length==0) {
+							module[id] = factory;
+							exports = require(id);
+							if(callbackDic[id]) {
+								callbackDic[id](exports);
+							}
+						}
+					});
+				}else{
+					var index = deps.indexOf(_id);
+					if(index!==-1) {
+						deps.splice(index, 1);
+						i--;
+					}
+
+					if(deps.length === 0) {
+						module[id] = factory;
+						if(asyncDic[id]) {
+							exports = require(id);
+							if(callbackDic[id]) {
+								callbackDic[id](exports);
+							}
+						}
+					}
+				}
+			}
+		}
 	};
 
 	function require(id) {
@@ -9,56 +62,37 @@ var CMDLoader = (function(w) {
 	}
 
 	require.async = function(id, callback) {
+		if(callback)callbackDic[id] = callback;
+		asyncDic[id] = true;
+
 		if(module[id]) {
-			callback(require(id));
+			var exports = require(id);
+			if(callback) {
+				callback(exports);
+			}
 		}else{
 			var script = document.createElement('script');
 			script.type = 'text/javascript';
-			script.src = id;
+			script.src = map[id] || baseUrl + id + '.js';
 			document.body.appendChild(script);
 			script.onload = function() {
-				var exports = require(id);
-				callback(exports);
 				script.parentNode.removeChild(script);
 			};
 		}
 	};
 
+	function config(data) {
+		baseUrl = data.baseUrl;
+	}
+
+	function mapFun(data) {
+		map = data;
+	}
+
 	return {
-		use : require
+		use : require.async,
+		config : config,
+		map: mapFun
 	};
 })(window);
 
-define('dialog', function(require) {
-	var count = 0;
-	var diy = require('diy');
-
-	function dialog() {
-		alert("dialog count:" + (count++) + " diy.a:" + diy.a);
-	}
-	return dialog;
-});
-
-define('diy', function(require) {
-	return {
-		a : "a",
-		b : "b"
-	};
-});
-
-define('main', function(require) {
-	var btn1 = document.getElementById('btn1');
-
-	var dialog = require('dialog');
-	btn1.addEventListener('click', function() {
-		dialog();
-	});
-	
-	
-	var btn2 = document.getElementById('btn2');
-	btn2.addEventListener('click', function() {
-		require.async('async', function(async) {
-			async();
-		});
-	});
-});
