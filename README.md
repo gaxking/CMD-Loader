@@ -18,3 +18,5 @@ CMDLoader.use('id');
 
 
 增加了异步加载模式
+
+[运行DEMO](http://www.luoyongjie.cn/mygit/CMD-Loader/)
